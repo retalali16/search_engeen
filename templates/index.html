@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BBC News Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+        }
+        .light-mode {
+            background: linear-gradient(to bottom, #ffffff, #eff6ff);
+        }
+        .dark-mode {
+            background: linear-gradient(to bottom, #111827, #1f2937);
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .suggestion { transition: all 0.2s ease; }
+        .suggestion:hover { 
+            background-color: #dbeafe; 
+            transform: translateX(5px); 
+        }
+        .dark-mode .suggestion:hover { 
+            background-color: #1e3a8a; 
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); 
+        }
+        .suggestion-selected { 
+            background-color: #bfdbfe; 
+        }
+        .dark-mode .suggestion-selected { 
+            background-color: #1e40af; 
+        }
+        .action-btn { 
+            transition: all 0.2s ease; 
+        }
+        .action-btn:hover { 
+            transform: scale(1.1); 
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); 
+        }
+        .dark-mode .action-btn:hover { 
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.5); 
+        }
+        .tooltip { position: relative; }
+        .tooltip .tooltip-text { 
+            visibility: hidden; 
+            width: 220px; 
+            background: #1e3a8a; 
+            color: #fff; 
+            text-align: center; 
+            border-radius: 6px; 
+            padding: 8px; 
+            font-size: 0.9rem;
+            position: absolute; 
+            z-index: 20; 
+            bottom: 130%; 
+            left: 50%; 
+            margin-left: -110px; 
+            opacity: 0; 
+            transition: opacity 0.3s; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .dark-mode .tooltip .tooltip-text { 
+            background: #4b5563; 
+        }
+        .tooltip:hover .tooltip-text { 
+            visibility: visible; 
+            opacity: 1; 
+        }
+        .expanded-suggestion { 
+            color: #3b82f6; 
+            font-style: italic; 
+        }
+        .dark-mode .expanded-suggestion { 
+            color: #60a5fa; 
+        }
+        .suggestion-loading { 
+            color: #6b7280; 
+            font-style: italic; 
+        }
+        .suggestion-category { 
+            font-size: 0.75rem; 
+            color: #1e40af; 
+            padding: 4px 8px; 
+            border-bottom: 2px solid #bfdbfe; 
+            font-weight: 600; 
+        }
+        .dark-mode .suggestion-category { 
+            color: #93c5fd; 
+            border-bottom: 2px solid #1e40af; 
+        }
+        .delete-btn { 
+            transition: all 0.2s ease; 
+        }
+        .delete-btn:hover { 
+            color: #ef4444; 
+            transform: rotate(15deg); 
+        }
+        .dark-mode .delete-btn:hover { 
+            color: #f87171; 
+        }
+        .animate-slide-down { 
+            animation: slideDown 0.3s ease-out; 
+        }
+        @keyframes slideDown { 
+            from { transform: translateY(-20px); opacity: 0; } 
+            to { transform: translateY(0); opacity: 1; } 
+        }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            z-index: 30; 
+            animation: fadeIn 0.3s ease; 
+        }
+        .modal-content { 
+            background: linear-gradient(to bottom, #ffffff, #f0f7ff); 
+            margin: 5% auto; 
+            padding: 24px; 
+            border-radius: 12px; 
+            max-width: 900px; 
+            width: 90%; 
+            max-height: 80vh; 
+            overflow-y: auto; 
+            position: relative; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2); 
+            transform: translateY(-50px); 
+            animation: slideIn 0.4s ease-out forwards; 
+        }
+        .dark-mode .modal-content { 
+            background: linear-gradient(to bottom, #1f2937, #111827); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); 
+        }
+        @keyframes slideIn { 
+            to { transform: translateY(0); } 
+        }
+        .close-modal { 
+            position: absolute; 
+            top: 12px; 
+            right: 20px; 
+            font-size: 1.8rem; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+        }
+        .close-modal:hover { 
+            color: #3b82f6; 
+            transform: rotate(90deg); 
+        }
+        .dark-mode .close-modal:hover { 
+            color: #ec4899; 
+        }
+        .navbar { 
+            background: linear-gradient(to right, #e0f2fe, #bfdbfe); 
+            padding: 1.5rem 2rem; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+            border-radius: 0 0 12px 12px; 
+        }
+        .dark-mode .navbar { 
+            background: linear-gradient(to right, #1e3a8a, #1e293b); 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4); 
+            border-bottom: 2px solid #3b82f6; 
+        }
+        .history-table th, .history-table td { 
+            padding: 12px; 
+            text-align: left; 
+            border-bottom: 1px solid #bfdbfe; 
+        }
+        .dark-mode .history-table th, .dark-mode .history-table td { 
+            border-bottom: 1px solid #1e40af; 
+        }
+        .search-card { 
+            background: #ffffff; 
+            border: 2px solid transparent; 
+            border-image: linear-gradient(to right, #3b82f6, #93c5fd) 1; 
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1); 
+            transition: all 0.3s ease; 
+        }
+        .dark-mode .search-card { 
+            background: #1f2937; 
+            border-image: linear-gradient(to right, #3b82f6, #ec4899) 1; 
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3); 
+        }
+        .result-card { 
+            transition: all 0.3s ease; 
+        }
+        .result-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3); 
+        }
+        .dark-mode .result-card:hover { 
+            box-shadow: 0 8px 16px rgba(236, 72, 153, 0.3); 
+        }
+        .pagination-btn { 
+            transition: all 0.2s ease; 
+        }
+        .pagination-btn:hover:not(:disabled) { 
+            transform: scale(1.1); 
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); 
+        }
+        .dark-mode .pagination-btn:hover:not(:disabled) { 
+            box-shadow: 0 0 8px rgba(236, 72, 153, 0.5); 
+        }
+        /* Improved radio button styling for light mode */
+        input[type="radio"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            background-color: #ffffff;
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        input[type="radio"]:checked {
+            background-color: #3b82f6;
+            border-color: #1e40af;
+            box-shadow: inset 0 0 0 3px #ffffff;
+        }
+        input[type="radio"]:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .dark-mode input[type="radio"] {
+            border-color: #60a5fa;
+            background-color: #1f2937;
+        }
+        .dark-mode input[type="radio"]:checked {
+            background-color: #60a5fa;
+            border-color: #3b82f6;
+            box-shadow: inset 0 0 0 3px #1f2937;
+        }
+        .dark-mode input[type="radio"]:focus {
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+        }
+        @media (max-width: 640px) {
+            .navbar { 
+                flex-direction: column; 
+                gap: 1rem; 
+            }
+            .history-table { 
+                display: block; 
+                overflow-x: auto; 
+                white-space: nowrap; 
+            }
+            .history-table th, .history-table td { 
+                font-size: 0.9rem; 
+                padding: 8px; 
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen light-mode">
+    <!-- Navbar -->
+    <nav class="navbar flex justify-between items-center">
+        <h1 class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">BBC News Search Engine</h1>
+        <div class="flex gap-4">
+            <button id="history-toggle" class="action-btn p-2 rounded-full bg-blue-200 dark:bg-gray-700 hover:bg-blue-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 tooltip" 
+                    aria-label="View search history" title="View search history">
+                <i class="fas fa-history text-blue-600 dark:text-blue-400"></i>
+                <span class="tooltip-text">View search history</span>
+            </button>
+            <button id="theme-toggle" class="action-btn p-2 rounded-full bg-blue-200 dark:bg-gray-700 hover:bg-blue-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 tooltip" 
+                    aria-label="Switch to dark mode" title="Switch to dark mode">
+                <i class="fas fa-moon text-blue-600 dark:text-blue-400"></i>
+                <span class="tooltip-text">Switch to dark mode</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- History Modal -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal text-gray-500 dark:text-gray-400" aria-label="Close history modal">×</span>
+            <h2 class="text-2xl font-bold mb-4 text-blue-600 dark:text-blue-400">Search History</h2>
+            <button id="clear-history" 
+                    class="action-btn bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-pink-500 text-white rounded-lg p-2 mb-4 hover:from-red-600 hover:to-red-700 dark:hover:from-red-700 dark:hover:to-pink-600 focus:outline-none focus:ring-2 focus:ring-red-400 flex items-center gap-2">
+                <i class="fas fa-trash"></i> Clear All History
+            </button>
+            <div id="history-content">
+                <p class="text-gray-500 dark:text-gray-400">No history available.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto p-4 sm:p-6">
+        <!-- Search Form -->
+        <div class="search-card rounded-lg p-6 mb-8">
+            <form id="search-form" class="flex flex-col gap-4">
+                <div class="relative">
+                    <input type="text" id="query" placeholder="Enter your search query..." 
+                           class="border border-gray-200 dark:border-gray-600 rounded-lg p-3 w-full bg-white dark:bg-gray-800 
+                           focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 text-gray-800 dark:text-gray-200" 
+                           required aria-label="Search query" autocomplete="off">
+                    <button type="button" id="clear-query" 
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hidden" 
+                            aria-label="Clear search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div id="suggestions" 
+                         class="absolute z-10 w-full bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-600 rounded-lg mt-1 max-h-60 overflow-y-auto hidden animate-slide-down">
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="algorithm" value="tfidf" checked class="text-blue-600 focus:ring-blue-400">
+                            <span class="text-gray-700 dark:text-gray-300">TF-IDF</span>
+                        </label>
+                        <label class="flex items-center gap-2">
+                            <input type="radio" name="algorithm" value="bm25" class="text-blue-600 focus:ring-blue-400">
+                            <span class="text-gray-700 dark:text-gray-300">BM25</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label for="per-page" class="text-sm text-gray-700 dark:text-gray-300">Results per page:</label>
+                        <select id="per-page" 
+                                class="border border-gray-200 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-800 focus:outline-none text-gray-800 dark:text-gray-200">
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2 tooltip">
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" id="expand-query" class="text-blue-600 focus:ring-blue-400">
+                            <span class="text-gray-700 dark:text-gray-300">Expand Query</span>
+                        </label>
+                        <span id="expand-query-tooltip" class="tooltip-text">Expands query using SentenceTransformer('all-MiniLM-L6-v2')</span>
+                    </div>
+                </div>
+
+                <button type="submit" 
+                        class="action-btn bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-400 text-white rounded-lg p-3 hover:from-blue-600 hover:to-blue-700 dark:hover:from-blue-700 dark:hover:to-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 flex items-center justify-center gap-2">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </form>
+        </div>
+
+        <!-- Results -->
+        <div id="results" class="mt-8 fade-in">
+            <p class="text-gray-500 dark:text-gray-400 text-center">Enter a query to start searching...</p>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" class="flex justify-center gap-2 mt-6"></div>
+    </div>
+
+    <script>
+        console.log('[DEBUG] Script started');
+
+        // DOM Elements
+        const form = document.getElementById('search-form');
+        const queryInput = document.getElementById('query');
+        const clearQueryBtn = document.getElementById('clear-query');
+        const suggestionsDiv = document.getElementById('suggestions');
+        const resultsDiv = document.getElementById('results');
+        const paginationDiv = document.getElementById('pagination');
+        const perPageSelect = document.getElementById('per-page');
+        const expandQueryCheckbox = document.getElementById('expand-query');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = themeToggle.querySelector('i');
+        const historyToggle = document.getElementById('history-toggle');
+        const historyModal = document.getElementById('history-modal');
+        const closeModal = historyModal.querySelector('.close-modal');
+        const historyContent = document.getElementById('history-content');
+        const clearHistoryBtn = document.getElementById('clear-history');
+        console.log('[DEBUG] DOM elements initialized:', { form, queryInput, suggestionsDiv, historyModal });
+
+        // State
+        let currentPage = 1;
+        let totalResults = 0;
+        let perPage = parseInt(perPageSelect.value);
+        let history = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+        let suggestionCache = new Map();
+        let selectedSuggestionIndex = -1;
+        console.log('[DEBUG] Initial state:', { currentPage, perPage, history });
+
+        // Debounce function
+        function debounce(func, wait) {
+            console.log('[DEBUG] Debounce initialized with wait:', wait);
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    console.log('[DEBUG] Debounce triggered for:', args);
+                    func.apply(this, args);
+                }, wait);
+            };
+        }
+
+        // Theme Toggle
+        function toggleTheme() {
+            console.log('[DEBUG] Toggling theme');
+            const isDark = !document.body.classList.contains('dark-mode');
+            document.body.classList.toggle('dark-mode', isDark);
+            document.body.classList.toggle('light-mode', !isDark);
+            themeIcon.classList.toggle('fa-moon', !isDark);
+            themeIcon.classList.toggle('fa-sun', isDark);
+            const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+            themeToggle.setAttribute('aria-label', label);
+            themeToggle.setAttribute('title', label);
+            themeToggle.querySelector('.tooltip-text').textContent = label;
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            console.log('[DEBUG] Theme toggled to:', isDark ? 'dark' : 'light');
+            console.log('[DEBUG] Computed body style:', getComputedStyle(document.body).background);
+        }
+
+        themeToggle.addEventListener('click', () => {
+            console.log('[DEBUG] Theme toggle clicked');
+            toggleTheme();
+        });
+
+        // Initialize Theme
+        function initializeTheme() {
+            console.log('[DEBUG] Initializing theme');
+            let isDark = localStorage.getItem('theme') === 'dark' || 
+                        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.body.classList.toggle('dark-mode', isDark);
+            document.body.classList.toggle('light-mode', !isDark);
+            themeIcon.classList.toggle('fa-moon', !isDark);
+            themeIcon.classList.toggle('fa-sun', isDark);
+            const label = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+            themeToggle.setAttribute('aria-label', label);
+            themeToggle.setAttribute('title', label);
+            themeToggle.querySelector('.tooltip-text').textContent = label;
+            console.log('[DEBUG] Theme initialized:', isDark ? 'dark' : 'light');
+        }
+
+        initializeTheme();
+
+        // Load User Settings
+        function loadSettings() {
+            console.log('[DEBUG] Loading user settings');
+            const settings = JSON.parse(localStorage.getItem('searchSettings') || '{}');
+            if (settings.algorithm) {
+                document.querySelector(`input[name="algorithm"][value="${settings.algorithm}"]`).checked = true;
+            }
+            if (settings.perPage) {
+                perPageSelect.value = settings.perPage;
+                perPage = parseInt(settings.perPage);
+            }
+            if (settings.expandQuery !== undefined) {
+                expandQueryCheckbox.checked = settings.expandQuery;
+            }
+            console.log('[DEBUG] Settings loaded:', settings);
+        }
+
+        function saveSettings() {
+            console.log('[DEBUG] Saving user settings');
+            const settings = {
+                algorithm: document.querySelector('input[name="algorithm"]:checked').value,
+                perPage: perPageSelect.value,
+                expandQuery: expandQueryCheckbox.checked
+            };
+            localStorage.setItem('searchSettings', JSON.stringify(settings));
+            console.log('[DEBUG] Settings saved:', settings);
+        }
+
+        loadSettings();
+
+        // Auto-focus input
+        queryInput.focus();
+        console.log('[DEBUG] Input auto-focused');
+
+        // History Management
+        function saveHistory(entry) {
+            console.log('[DEBUG] Saving history entry:', entry);
+            history.unshift(entry);
+            history = history.slice(0, 100);
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            console.log('[DEBUG] History updated:', history);
+        }
+
+        function deleteHistory(index) {
+            console.log('[DEBUG] Deleting history at index:', index);
+            history.splice(index, 1);
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            displayHistory();
+            console.log('[DEBUG] History deleted, updated history:', history);
+        }
+
+        function clearHistory() {
+            console.log('[DEBUG] Clearing all history');
+            history = [];
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+            displayHistory();
+            console.log('[DEBUG] History cleared');
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+
+        function displayHistory() {
+            console.log('[DEBUG] Displaying history');
+            if (history.length === 0) {
+                historyContent.innerHTML = `<p class="text-gray-500 dark:text-gray-400">No history available.</p>`;
+                console.log('[DEBUG] No history to display');
+                return;
+            }
+
+            let html = `
+                <table class="history-table w-full text-sm">
+                    <thead>
+                        <tr>
+                            <th>Query/URL</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            history.forEach((entry, index) => {
+                const value = entry.type === 'search' ? 
+                    entry.query : 
+                    `<a href="${entry.url}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline">${entry.url}</a>`;
+                html += `
+                    <tr>
+                        <td>${value}</td>
+                        <td>${entry.type === 'search' ? 'Search' : 'Article'}</td>
+                        <td>${formatDate(entry.timestamp)}</td>
+                        <td>
+                            <button class="delete-btn text-gray-400 hover:text-red-500 dark:hover:text-red-400" 
+                                    onclick="deleteHistory(${index})" 
+                                    aria-label="Delete history entry">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += `</tbody></table>`;
+            historyContent.innerHTML = html;
+            console.log('[DEBUG] History rendered');
+        }
+
+        historyToggle.addEventListener('click', () => {
+            console.log('[DEBUG] History toggle clicked');
+            historyModal.style.display = 'block';
+            displayHistory();
+        });
+
+        closeModal.addEventListener('click', () => {
+            console.log('[DEBUG] Close modal clicked');
+            historyModal.style.display = 'none';
+        });
+
+        clearHistoryBtn.addEventListener('click', () => {
+            console.log('[DEBUG] Clear history button clicked');
+            clearHistory();
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === historyModal) {
+                console.log('[DEBUG] Modal background clicked');
+                historyModal.style.display = 'none';
+            }
+        });
+
+        // Clear Query Button
+        queryInput.addEventListener('input', () => {
+            console.log('[DEBUG] Query input changed:', queryInput.value);
+            clearQueryBtn.classList.toggle('hidden', !queryInput.value);
+            showSuggestions();
+        });
+
+        clearQueryBtn.addEventListener('click', () => {
+            console.log('[DEBUG] Clear query button clicked');
+            queryInput.value = '';
+            clearQueryBtn.classList.add('hidden');
+            suggestionsDiv.classList.add('hidden');
+            selectedSuggestionIndex = -1;
+            queryInput.focus();
+            console.log('[DEBUG] Query cleared');
+        });
+
+        // Autosuggest
+        const showSuggestions = debounce(async () => {
+            const query = queryInput.value.trim().toLowerCase();
+            console.log('[DEBUG] showSuggestions called with query:', query);
+
+            if (!query) {
+                console.log('[DEBUG] Empty query, hiding suggestions');
+                suggestionsDiv.classList.add('hidden');
+                selectedSuggestionIndex = -1;
+                return;
+            }
+
+            console.log('[DEBUG] Showing loading indicator');
+            suggestionsDiv.innerHTML = `
+                <div class="suggestion-loading p-2 text-sm">
+                    <i class="fas fa-spinner fa-spin mr-1"></i>Loading suggestions...
+                </div>
+            `;
+            suggestionsDiv.classList.remove('hidden');
+
+            // Get recent searches
+            const recent = history
+                .filter(h => h.type === 'search' && h.query.toLowerCase().includes(query))
+                .slice(0, 3)
+                .map(h => ({ query: h.query, timestamp: h.timestamp }));
+            console.log('[DEBUG] Recent searches filtered:', recent);
+
+            // Get expanded suggestions
+            let expanded = [];
+            if (expandQueryCheckbox.checked) {
+                console.log('[DEBUG] Expand query checked, fetching from /suggest');
+                if (suggestionCache.has(query)) {
+                    expanded = suggestionCache.get(query);
+                    console.log('[DEBUG] Using cached suggestions:', expanded);
+                } else {
+                    try {
+                        console.log('[DEBUG] Sending POST to /suggest');
+                        const response = await fetch('/suggest', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ query })
+                        });
+
+                        console.log('[DEBUG] Response status:', response.status);
+                        if (!response.ok) {
+                            console.error('[DEBUG] Failed to fetch suggestions:', response.status, await response.text());
+                            suggestionsDiv.innerHTML = `
+                                <div class="suggestion p-2 text-sm text-red-500 dark:text-red-400">
+                                    Failed to load suggestions. Please try again.
+                                </div>
+                            `;
+                            suggestionsDiv.classList.remove('hidden');
+                            return;
+                        }
+
+                        const data = await response.json();
+                        expanded = data.suggestions || [];
+                        suggestionCache.set(query, expanded);
+                        console.log('[DEBUG] Expanded suggestions received:', expanded);
+                    } catch (error) {
+                        console.error('[DEBUG] Error fetching suggestions:', error);
+                        suggestionsDiv.innerHTML = `
+                            <div class="suggestion p-2 text-sm text-red-500 dark:text-red-400">
+                                Error loading suggestions: ${error.message}
+                            </div>
+                        `;
+                        suggestionsDiv.classList.remove('hidden');
+                        return;
+                    }
+                }
+            } else {
+                console.log('[DEBUG] Expand query not checked, skipping /suggest');
+            }
+
+            // Combine suggestions
+            const suggestions = [
+                ...recent.map(s => ({ text: s.query, type: 'recent', timestamp: s.timestamp })),
+                ...expanded.map(s => ({ text: s, type: 'expanded' }))
+            ].slice(0, 5);
+            console.log('[DEBUG] Combined suggestions:', suggestions);
+
+            if (suggestions.length === 0) {
+                console.log('[DEBUG] No suggestions, showing no suggestions message');
+                suggestionsDiv.innerHTML = `
+                    <div class="suggestion p-2 text-sm text-gray-500 dark:text-gray-400">
+                        No suggestions found
+                    </div>
+                `;
+                suggestionsDiv.classList.remove('hidden');
+                return;
+            }
+
+            // Render suggestions
+            let html = '';
+            const recentSuggestions = suggestions.filter(s => s.type === 'recent');
+            const expandedSuggestions = suggestions.filter(s => s.type === 'expanded');
+
+            if (recentSuggestions.length > 0) {
+                html += `<div class="suggestion-category">Recent Searches</div>`;
+                recentSuggestions.forEach((s, i) => {
+                    html += `
+                        <div class="suggestion p-2 cursor-pointer text-sm" 
+                             data-index="${i}" 
+                             onclick="selectSuggestion('${s.text}')">
+                            <i class="fas fa-history mr-1 text-blue-600 dark:text-blue-400"></i>
+                            ${s.text}
+                            <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">${formatDate(s.timestamp)}</span>
+                        </div>
+                    `;
+                });
+            }
+            if (expandedSuggestions.length > 0) {
+                html += `<div class="suggestion-category">Suggested Queries</div>`;
+                expandedSuggestions.forEach((s, i) => {
+                    html += `
+                        <div class="suggestion p-2 cursor-pointer text-sm expanded-suggestion" 
+                             data-index="${i + recentSuggestions.length}" 
+                             onclick="selectSuggestion('${s.text}')">
+                            <i class="fas fa-magic mr-1"></i>${s.text}
+                        </div>
+                    `;
+                });
+            }
+
+            suggestionsDiv.innerHTML = html;
+            suggestionsDiv.classList.remove('hidden');
+            console.log('[DEBUG] Suggestions rendered:', html);
+
+            // Reset selected index
+            selectedSuggestionIndex = -1;
+            updateSelectedSuggestion();
+        }, 100);
+
+        function selectSuggestion(query) {
+            console.log('[DEBUG] Selecting suggestion:', query);
+            queryInput.value = query;
+            suggestionsDiv.classList.add('hidden');
+            selectedSuggestionIndex = -1;
+            form.dispatchEvent(new Event('submit'));
+        }
+
+        // Keyboard Navigation
+        queryInput.addEventListener('keydown', (e) => {
+            console.log('[DEBUG] Keydown event:', e.key);
+            const suggestionItems = suggestionsDiv.querySelectorAll('.suggestion');
+            if (!suggestionItems.length) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, suggestionItems.length - 1);
+                console.log('[DEBUG] ArrowDown, new index:', selectedSuggestionIndex);
+                updateSelectedSuggestion();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                console.log('[DEBUG] ArrowUp, new index:', selectedSuggestionIndex);
+                updateSelectedSuggestion();
+            } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+                e.preventDefault();
+                const selected = suggestionItems[selectedSuggestionIndex].querySelector('i').nextSibling.textContent.trim();
+                console.log('[DEBUG] Enter pressed, selecting:', selected);
+                selectSuggestion(selected);
+            } else if (e.key === 'Escape') {
+                console.log('[DEBUG] Escape pressed');
+                queryInput.value = '';
+                clearQueryBtn.classList.add('hidden');
+                suggestionsDiv.classList.add('hidden');
+                selectedSuggestionIndex = -1;
+            }
+        });
+
+        function updateSelectedSuggestion() {
+            console.log('[DEBUG] Updating selected suggestion:', selectedSuggestionIndex);
+            const suggestionItems = suggestionsDiv.querySelectorAll('.suggestion');
+            suggestionItems.forEach((item, i) => {
+                item.classList.toggle('suggestion-selected', i === selectedSuggestionIndex);
+                if (i === selectedSuggestionIndex) {
+                    item.scrollIntoView({ block: 'nearest' });
+                }
+            });
+        }
+
+        // Update Settings
+        perPageSelect.addEventListener('change', () => {
+            console.log('[DEBUG] Per-page changed:', perPageSelect.value);
+            perPage = parseInt(perPageSelect.value);
+            saveSettings();
+            if (totalResults > 0) {
+                currentPage = 1;
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        document.querySelectorAll('input[name="algorithm"]').forEach(input => {
+            input.addEventListener('change', () => {
+                console.log('[DEBUG] Algorithm changed:', input.value);
+                saveSettings();
+            });
+        });
+
+        expandQueryCheckbox.addEventListener('change', () => {
+            console.log('[DEBUG] Expand query changed:', expandQueryCheckbox.checked);
+            saveSettings();
+            showSuggestions();
+        });
+
+        // Form Submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const query = queryInput.value.trim();
+            console.log('[DEBUG] Form submitted with query:', query);
+            if (!query) {
+                console.log('[DEBUG] Empty query, ignoring submission');
+                return;
+            }
+
+            // Save search to history
+            saveHistory({ type: 'search', query, timestamp: new Date().toISOString() });
+            console.log('[DEBUG] Search saved to history');
+
+            const algorithm = document.querySelector('input[name="algorithm"]:checked').value;
+            const expandQuery = expandQueryCheckbox.checked;
+
+            resultsDiv.innerHTML = `
+                <div class="flex justify-center items-center gap-2 text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-spinner fa-spin"></i> Searching...
+                </div>
+            `;
+            paginationDiv.innerHTML = '';
+            console.log('[DEBUG] Showing search loading indicator');
+
+            try {
+                console.log('[DEBUG] Sending POST to /search');
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, algorithm, page: currentPage, per_page: perPage, expand_query: expandQuery })
+                });
+
+                console.log('[DEBUG] Search response status:', response.status);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Search failed: ${response.status} ${errorText}`);
+                }
+
+                const data = await response.json();
+                totalResults = data.total;
+                console.log('[DEBUG] Search data received:', data);
+                displayResults(data);
+                displayPagination();
+            } catch (error) {
+                console.error('[DEBUG] Search error:', error);
+                resultsDiv.innerHTML = `
+                    <p class="text-red-500 dark:text-red-400 mt-4">
+                        Error: ${error.message}. Please check if the server is running and try again.
+                    </p>
+                `;
+            }
+        });
+
+        // Display Results
+        function displayResults(data) {
+            console.log('[DEBUG] Displaying results:', data);
+            if (data.results.length === 0) {
+                resultsDiv.innerHTML = `<p class="text-red-500 dark:text-red-400 mt-4">No results found.</p>`;
+                console.log('[DEBUG] No results found');
+                return;
+            }
+
+            let html = `
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Found ${data.total} results in ${data.time_ms} ms</p>
+            `;
+            if (data.expanded_query) {
+                html += `
+                    <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Expanded query: <span class="font-medium text-blue-600 dark:text-blue-400">${data.expanded_query}</span></p>
+                `;
+            }
+            html += `<div class="space-y-4">`;
+
+            data.results.forEach(item => {
+                html += `
+                    <div class="result-card bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md">
+                        <div class="flex justify-between items-start">
+                            <a href="${item.url}" target="_blank" 
+                               class="text-lg sm:text-xl font-semibold text-blue-600 dark:text-blue-400 hover:underline" 
+                               rel="noopener noreferrer" 
+                               onclick="trackArticleVisit('${item.url}')">${item.title}</a>
+                            <button onclick="copyUrl('${item.url}')" 
+                                    class="action-btn text-gray-400 hover:text-blue-600 dark:hover:text-blue-400" 
+                                    title="Copy URL" aria-label="Copy URL">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Score: ${item.score}</p>
+                        <p class="mt-2 text-gray-700 dark:text-gray-300">${item.content}</p>
+                        <div class="mt-2">
+                            <span class="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded">News</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('fade-in');
+            console.log('[DEBUG] Results rendered');
+        }
+
+        // Track Article Visit
+        function trackArticleVisit(url) {
+            console.log('[DEBUG] Tracking article visit:', url);
+            saveHistory({ type: 'article', url, timestamp: new Date().toISOString() });
+            console.log('[DEBUG] Article visit saved to history');
+        }
+
+        // Copy URL to Clipboard
+        function copyUrl(url) {
+            console.log('[DEBUG] Copying URL:', url);
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL copied to clipboard!');
+                console.log('[DEBUG] URL copied');
+            }).catch(err => {
+                console.error('[DEBUG] Failed to copy URL:', err);
+            });
+        }
+
+        // Display Pagination
+        function displayPagination() {
+            console.log('[DEBUG] Displaying pagination');
+            const totalPages = Math.ceil(totalResults / perPage);
+            if (totalPages <= 1) {
+                console.log('[DEBUG] No pagination needed');
+                return;
+            }
+
+            let html = '';
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            html += `
+                <button class="pagination-btn px-3 py-1 rounded bg-blue-200 dark:bg-gray-700 ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-300 dark:hover:bg-gray-600'}" 
+                        ${currentPage === 1 ? 'disabled' : ''} 
+                        onclick="changePage(${currentPage - 1})" aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+            `;
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <button class="pagination-btn px-3 py-1 rounded ${i === currentPage ? 'bg-blue-600 text-white' : 'bg-blue-200 dark:bg-gray-700 hover:bg-blue-300 dark:hover:bg-gray-600'}" 
+                            onclick="changePage(${i})" aria-label="Page ${i}">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            html += `
+                <button class="pagination-btn px-3 py-1 rounded bg-blue-200 dark:bg-gray-700 ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-300 dark:hover:bg-gray-600'}" 
+                        ${currentPage === totalPages ? 'disabled' : ''} 
+                        onclick="changePage(${currentPage + 1})" aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+
+            paginationDiv.innerHTML = html;
+            console.log('[DEBUG] Pagination rendered');
+        }
+
+        // Change Page
+        async function changePage(page) {
+            console.log('[DEBUG] Changing page to:', page);
+            if (page < 1 || page > Math.ceil(totalResults / perPage)) {
+                console.log('[DEBUG] Invalid page, ignoring');
+                return;
+            }
+            currentPage = page;
+
+            const query = queryInput.value.trim();
+            const algorithm = document.querySelector('input[name="algorithm"]:checked').value;
+            const expandQuery = expandQueryCheckbox.checked;
+
+            resultsDiv.innerHTML = `
+                <div class="flex justify-center items-center gap-2 text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                </div>
+            `;
+
+            try {
+                console.log('[DEBUG] Sending POST to /search for page change');
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, algorithm, page: currentPage, per_page: perPage, expand_query: expandQuery })
+                });
+
+                console.log('[DEBUG] Page change response status:', response.status);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Page change failed: ${response.status} ${errorText}`);
+                }
+
+                const data = await response.json();
+                totalResults = data.total;
+                console.log('[DEBUG] Page change data received:', data);
+                displayResults(data);
+                displayPagination();
+            } catch (error) {
+                console.error('[DEBUG] Page change error:', error);
+                resultsDiv.innerHTML = `
+                    <p class="text-red-500 dark:text-red-400 mt-4">
+                        Error: ${error.message}. Please check if the server is running and try again.
+                    </p>
+                `;
+            }
+        }
+
+        // Ensure correct tooltip text
+        document.addEventListener('DOMContentLoaded', () => {
+            const tooltip = document.getElementById('expand-query-tooltip');
+            if (tooltip) {
+                tooltip.textContent = "Expands query using SentenceTransformer('all-MiniLM-L6-v2')";
+                console.log('[DEBUG] Tooltip set to:', tooltip.textContent);
+                
+                // Watch for unauthorized changes
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                            console.error('[ERROR] Tooltip modified to:', tooltip.textContent);
+                            tooltip.textContent = "Expands query using SentenceTransformer('all-MiniLM-L6-v2')";
+                        }
+                    });
+                });
+                observer.observe(tooltip, { childList: true, characterData: true, subtree: true });
+            } else {
+                console.error('[ERROR] Tooltip element not found');
+            }
+        });
+    </script>
+</body>
+</html>
